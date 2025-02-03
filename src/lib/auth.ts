@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { Provider } from '@supabase/supabase-js';
 
 // Default avatar URL - abstract user icon
 export const DEFAULT_AVATAR_URL = "https://api.dicebear.com/7.x/avataaars/svg?backgroundColor=b6e3f4";
@@ -99,6 +100,22 @@ export async function signIn({ email, password }: SignInData) {
   }
 
   return authData;
+}
+
+export async function signInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  });
+
+  if (error) throw error;
+  return data;
 }
 
 export async function resetPassword(email: string) {

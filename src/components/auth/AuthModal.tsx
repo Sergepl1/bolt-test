@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, ArrowLeft, Apple, Github, Link as LinkIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
 
 import {
@@ -26,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { signIn, signUp, checkEmailExists, resetPassword } from '@/lib/auth';
+import { signIn, signUp, checkEmailExists, resetPassword, signInWithGoogle } from '@/lib/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 
@@ -130,6 +129,21 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
     },
   });
 
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      if (onSuccess) onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      toast({
+        title: 'Fehler bei der Google-Anmeldung',
+        description: 'Bitte versuchen Sie es später erneut.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const onSignUp = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
@@ -143,7 +157,6 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
         return;
       }
 
-      // Create sign-up data
       // Create sign-up data
       const signUpData: SignUpData = {
         email: data.email,
@@ -333,175 +346,219 @@ export function AuthModal({ open, onOpenChange, onSuccess }: AuthModalProps) {
           </TabsList>
 
           <TabsContent value="sign-in">
-            <Form {...signInForm}>
-              <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-6">
-                <FormField
-                  control={signInForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">E-Mail</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
+            <div className="space-y-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+              >
+                <FcGoogle className="mr-2 h-5 w-5" />
+                Mit Google anmelden
+              </Button>
 
-                <FormField
-                  control={signInForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">Passwort</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end">
-                  <Button
-                    variant="link"
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="px-0 h-auto text-sm"
-                  >
-                    Passwort vergessen?
-                  </Button>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Anmelden
-                </Button>
-              </form>
-            </Form>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Oder
+                  </span>
+                </div>
+              </div>
+
+              <Form {...signInForm}>
+                <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-6">
+                  <FormField
+                    control={signInForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">E-Mail</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={signInForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Passwort</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      variant="link"
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="px-0 h-auto text-sm"
+                    >
+                      Passwort vergessen?
+                    </Button>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Anmelden
+                  </Button>
+                </form>
+              </Form>
+            </div>
           </TabsContent>
 
           <TabsContent value="sign-up">
-            <Form {...signUpForm}>
-              <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-6">
-                <FormField
-                  control={signUpForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">E-Mail</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
+            <div className="space-y-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleSignIn}
+              >
+                <FcGoogle className="mr-2 h-5 w-5" />
+                Mit Google registrieren
+              </Button>
 
-                <FormField
-                  control={signUpForm.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">Passwort</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Oder
+                  </span>
+                </div>
+              </div>
 
-                <FormField
-                  control={signUpForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">Passwort bestätigen</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="password" />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
+              <Form {...signUpForm}>
+                <form onSubmit={signUpForm.handleSubmit(onSignUp)} className="space-y-6">
+                  <FormField
+                    control={signUpForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">E-Mail</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={signUpForm.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">Benutzername</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={signUpForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Passwort</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={signUpForm.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">Vorname</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Max" />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={signUpForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Passwort bestätigen</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="password" />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={signUpForm.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm">Nachname</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Mustermann" />
-                      </FormControl>
-                      <FormMessage className="text-sm text-destructive mt-1 absolute" />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={signUpForm.control}
-                  name="termsAccepted"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start gap-2">
-                      <FormControl className="mt-1">
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div>
-                        <FormLabel className="text-xs">
-                          Ich habe die{' '}
-                          <Link to="/terms" className="text-primary hover:underline" target="_blank">
-                            AGB
-                          </Link>
-                          {' '}und die{' '}
-                          <Link to="/privacy" className="text-primary hover:underline" target="_blank">
-                            Datenschutzerklärung
-                          </Link>
-                          {' '}gelesen und akzeptiere sie
-                        </FormLabel>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={signUpForm.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Benutzername</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Registrieren
-                </Button>
-              </form>
-            </Form>
+                  <FormField
+                    control={signUpForm.control}
+                    name="firstName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Vorname</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Max" />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={signUpForm.control}
+                    name="lastName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Nachname</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Mustermann" />
+                        </FormControl>
+                        <FormMessage className="text-sm text-destructive mt-1 absolute" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={signUpForm.control}
+                    name="termsAccepted"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start gap-2">
+                        <FormControl className="mt-1">
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div>
+                          <FormLabel className="text-xs">
+                            Ich habe die{' '}
+                            <Link to="/terms" className="text-primary hover:underline" target="_blank">
+                              AGB
+                            </Link>
+                            {' '}und die{' '}
+                            <Link to="/privacy" className="text-primary hover:underline" target="_blank">
+                              Datenschutzerklärung
+                            </Link>
+                            {' '}gelesen und akzeptiere sie
+                          </FormLabel>
+                          <FormMessage />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Registrieren
+                  </Button>
+                </form>
+              </Form>
+            </div>
           </TabsContent>
         </Tabs>
         )}
